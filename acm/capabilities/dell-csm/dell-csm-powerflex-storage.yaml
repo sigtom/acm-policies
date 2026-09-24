@@ -1,0 +1,39 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: dell-csm-powerflex-storage
+  namespace: open-cluster-management-policies
+spec:
+  disabled: false
+  remediationAction: enforce
+  dependencies:
+    - apiVersion: policy.open-cluster-management.io/v1
+      kind: Policy
+      name: dell-csm-powerflex
+      namespace: open-cluster-management-policies
+      compliance: Compliant
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: dell-csm-powerflex-storage
+        spec:
+          remediationAction: enforce
+          severity: high
+          object-templates-raw: |
+            {{hub- $cluster := .ManagedClusterName hub}}
+
+            {{hub- range $cm := (lookup "v1" "ConfigMap" "open-cluster-management-policies" "").items hub}}
+            {{hub- $labels := default (dict) $cm.metadata.labels hub}}
+
+            {{hub- if and
+              (eq (get $labels "acm-config") "dell-csm-powerflex")
+              (eq (get $labels "managed-cluster") $cluster)
+            hub}}
+
+            - complianceType: musthave
+              objectDefinition: {{hub $cm.data.object | fromYaml | toJson hub}}
+
+            {{hub- end hub}}
+            {{hub- end hub}}

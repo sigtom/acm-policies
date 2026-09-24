@@ -1,0 +1,66 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: dell-csm-powerflex
+  namespace: open-cluster-management-policies
+spec:
+  disabled: false
+  remediationAction: enforce
+  dependencies:
+    - apiVersion: policy.open-cluster-management.io/v1
+      kind: Policy
+      name: powerflex-storage-network
+      namespace: open-cluster-management-policies
+      compliance: Compliant
+    - apiVersion: policy.open-cluster-management.io/v1
+      kind: Policy
+      name: dell-csm-operator
+      namespace: open-cluster-management-policies
+      compliance: Compliant
+    - apiVersion: policy.open-cluster-management.io/v1
+      kind: Policy
+      name: dell-csm-pf-prereqs
+      namespace: open-cluster-management-policies
+      compliance: Compliant
+    - apiVersion: policy.open-cluster-management.io/v1
+      kind: Policy
+      name: dell-csm-powerflex-secret
+      namespace: open-cluster-management-policies
+      compliance: Compliant
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: dell-csm-powerflex
+        spec:
+          remediationAction: enforce
+          severity: high
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: storage.dell.com/v1
+                kind: ContainerStorageModule
+                metadata:
+                  name: vxflexos
+                  namespace: vxflexos
+                spec:
+                  driver:
+                    csiDriverType: powerflex
+                    configVersion: v2.17.0
+                    authSecret: vxflexos-config
+                    replicas: 2
+                    csiDriverSpec:
+                      fSGroupPolicy: File
+                      # Disabled to match the validated reference configuration
+                      # while its PowerFlex GetCapacity issue remains unresolved.
+                      storageCapacity: false
+                    forceRemoveDriver: true
+                    common:
+                      envs:
+                        - name: CSI_LOG_LEVEL
+                          value: info
+                    controller:
+                      envs: []
+                    node:
+                      envs: []

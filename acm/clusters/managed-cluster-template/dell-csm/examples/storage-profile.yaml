@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: managed-cluster-template-dell-csm-storage-profile
+  namespace: open-cluster-management-policies
+  labels:
+    acm-config: dell-csm-powerflex
+    managed-cluster: managed-cluster-template
+data:
+  object: |
+    apiVersion: cdi.kubevirt.io/v1beta1
+    kind: StorageProfile
+    metadata:
+      name: vxflexos
+    spec:
+      claimPropertySets:
+        - accessModes:
+            - ReadWriteMany
+          volumeMode: Block
+        - accessModes:
+            - ReadWriteOnce
+          volumeMode: Block
+        - accessModes:
+            - ReadWriteOnce
+          volumeMode: Filesystem
+        - accessModes:
+            - ReadOnlyMany
+          volumeMode: Block
+        - accessModes:
+            - ReadOnlyMany
+          volumeMode: Filesystem
+      cloneStrategy: csi-clone

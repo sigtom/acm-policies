@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: managed-cluster-template-dell-csm-storage-class
+  namespace: open-cluster-management-policies
+  labels:
+    acm-config: dell-csm-powerflex
+    managed-cluster: managed-cluster-template
+data:
+  object: |
+    apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+      name: vxflexos
+      annotations:
+        storageclass.kubernetes.io/is-default-class: "true"
+    provisioner: csi-vxflexos.dellemc.com
+    reclaimPolicy: Delete
+    allowVolumeExpansion: true
+    volumeBindingMode: WaitForFirstConsumer
+    parameters:
+      storagepool: "REPLACE_WITH_STORAGE_POOL"
+      protectiondomain: "REPLACE_WITH_PROTECTION_DOMAIN"
+      systemID: "REPLACE_WITH_SYSTEM_ID"
+      csi.storage.k8s.io/fstype: xfs
+    allowedTopologies:
+      - matchLabelExpressions:
+          - key: csi-vxflexos.dellemc.com/REPLACE_WITH_SYSTEM_ID
+            values:
+              - csi-vxflexos.dellemc.com

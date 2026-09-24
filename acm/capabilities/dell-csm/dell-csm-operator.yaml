@@ -1,0 +1,49 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: dell-csm-operator
+  namespace: open-cluster-management-policies
+spec:
+  disabled: false
+  remediationAction: enforce
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: dell-csm-operator-namespace
+        spec:
+          remediationAction: enforce
+          severity: medium
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: dell-csm-operator
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1beta1
+        kind: OperatorPolicy
+        metadata:
+          name: dell-csm-operator
+        spec:
+          complianceType: musthave
+          remediationAction: enforce
+          severity: medium
+          upgradeApproval: None
+          versions:
+            - dell-csm-operator-certified.v1.12.2
+          operatorGroup:
+            name: dell-csm-operator
+            namespace: dell-csm-operator
+            targetNamespaces:
+              - dell-csm-operator
+          subscription:
+            channel: stable
+            installPlanApproval: Manual
+            name: dell-csm-operator-certified
+            namespace: dell-csm-operator
+            source: certified-operators
+            sourceNamespace: openshift-marketplace
+            startingCSV: dell-csm-operator-certified.v1.12.2

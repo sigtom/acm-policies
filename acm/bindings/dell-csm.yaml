@@ -1,0 +1,25 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: dell-csm
+  namespace: open-cluster-management-policies
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: dell-csm
+subjects:
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: dell-csm-operator
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: dell-csm-pf-prereqs
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: dell-csm-powerflex-secret
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: dell-csm-powerflex
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: dell-csm-powerflex-storage

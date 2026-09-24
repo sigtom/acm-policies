@@ -1,0 +1,20 @@
+# Never commit PowerFlex credentials or rendered Secret manifests.
+**/vxflexos-config.yaml
+**/vxflexos-config-secret.yaml
+**/02-secret.yaml
+**/02-secret.yml
+**/*.secret.yaml
+**/*.secret.yml
+
+# Local environment files.
+.env
+.env.*
+
+# Rendered output and local working files.
+rendered/
+*.rendered.yaml
+
+# Editor and operating-system files.
+.DS_Store
+*.swp
+*.swo
