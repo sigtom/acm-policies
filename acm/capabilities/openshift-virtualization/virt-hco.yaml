@@ -1,0 +1,32 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: virt-hco
+  namespace: open-cluster-management-policies
+spec:
+  disabled: false
+  remediationAction: enforce
+  dependencies:
+    - apiVersion: policy.open-cluster-management.io/v1
+      kind: Policy
+      name: virt-operator
+      namespace: open-cluster-management-policies
+      compliance: Compliant
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: virt-hco
+        spec:
+          remediationAction: enforce
+          severity: high
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: hco.kubevirt.io/v1beta1
+                kind: HyperConverged
+                metadata:
+                  name: kubevirt-hyperconverged
+                  namespace: openshift-cnv
+                spec: {}

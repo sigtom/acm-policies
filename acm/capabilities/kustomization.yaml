@@ -5,3 +5,4 @@ resources:
   - dell-csm/
   - node-health-check/
   - node-maintenance/
+  - openshift-virtualization/

@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - virt-operator.yaml
+  - virt-hco.yaml
+  - virt-cdi-ready.yaml
+  - virt-vxflexos-ready.yaml

@@ -1,0 +1,22 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: openshift-virtualization
+  namespace: open-cluster-management-policies
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: openshift-virtualization
+subjects:
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: virt-operator
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: virt-hco
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: virt-cdi-ready
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: virt-vxflexos-ready
