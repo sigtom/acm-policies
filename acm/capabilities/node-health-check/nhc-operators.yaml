@@ -1,0 +1,68 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: nhc-operators
+  namespace: open-cluster-management-policies
+spec:
+  disabled: false
+  remediationAction: enforce
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: workload-availability-namespace
+        spec:
+          remediationAction: enforce
+          severity: medium
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: openshift-workload-availability
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1beta1
+        kind: OperatorPolicy
+        metadata:
+          name: self-node-remediation
+        spec:
+          complianceType: musthave
+          remediationAction: enforce
+          severity: medium
+          upgradeApproval: None
+          versions:
+            - self-node-remediation.v0.12.1
+          operatorGroup:
+            name: workload-availability-operator-group
+            namespace: openshift-workload-availability
+          subscription:
+            channel: stable
+            name: self-node-remediation
+            namespace: openshift-workload-availability
+            source: redhat-operators
+            sourceNamespace: openshift-marketplace
+            startingCSV: self-node-remediation.v0.12.1
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1beta1
+        kind: OperatorPolicy
+        metadata:
+          name: node-health-check
+        spec:
+          complianceType: musthave
+          remediationAction: enforce
+          severity: medium
+          upgradeApproval: None
+          versions:
+            - node-healthcheck-operator.v0.11.0
+          operatorGroup:
+            name: workload-availability-operator-group
+            namespace: openshift-workload-availability
+          subscription:
+            channel: stable
+            name: node-healthcheck-operator
+            namespace: openshift-workload-availability
+            source: redhat-operators
+            sourceNamespace: openshift-marketplace
+            startingCSV: node-healthcheck-operator.v0.11.0

@@ -1,0 +1,38 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: nhc-snr-ready
+  namespace: open-cluster-management-policies
+spec:
+  disabled: false
+  remediationAction: inform
+  dependencies:
+    - apiVersion: policy.open-cluster-management.io/v1
+      kind: Policy
+      name: nhc-operators
+      namespace: open-cluster-management-policies
+      compliance: Compliant
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: nhc-snr-ready
+        spec:
+          remediationAction: inform
+          severity: medium
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: self-node-remediation.medik8s.io/v1alpha1
+                kind: SelfNodeRemediationConfig
+                metadata:
+                  name: self-node-remediation-config
+                  namespace: openshift-workload-availability
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: self-node-remediation.medik8s.io/v1alpha1
+                kind: SelfNodeRemediationTemplate
+                metadata:
+                  name: self-node-remediation-automatic-strategy-template
+                  namespace: openshift-workload-availability

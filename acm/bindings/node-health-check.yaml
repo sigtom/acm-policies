@@ -1,0 +1,19 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: node-health-check
+  namespace: open-cluster-management-policies
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: node-health-check
+subjects:
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: nhc-operators
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: nhc-snr-ready
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: nhc-config

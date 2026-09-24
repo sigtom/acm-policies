@@ -1,0 +1,46 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: nmo-operator
+  namespace: open-cluster-management-policies
+spec:
+  disabled: false
+  remediationAction: enforce
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: workload-availability-namespace
+        spec:
+          remediationAction: enforce
+          severity: medium
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: openshift-workload-availability
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1beta1
+        kind: OperatorPolicy
+        metadata:
+          name: node-maintenance
+        spec:
+          complianceType: musthave
+          remediationAction: enforce
+          severity: medium
+          upgradeApproval: None
+          versions:
+            - node-maintenance-operator.v5.6.1
+          operatorGroup:
+            name: workload-availability-operator-group
+            namespace: openshift-workload-availability
+          subscription:
+            channel: stable
+            name: node-maintenance-operator
+            namespace: openshift-workload-availability
+            source: redhat-operators
+            sourceNamespace: openshift-marketplace
+            startingCSV: node-maintenance-operator.v5.6.1
