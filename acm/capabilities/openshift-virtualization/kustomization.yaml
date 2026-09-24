@@ -6,3 +6,4 @@ resources:
   - virt-hco.yaml
   - virt-cdi-ready.yaml
   - virt-vxflexos-ready.yaml
+  - virt-vxflexos-storage.yaml

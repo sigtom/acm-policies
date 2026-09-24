@@ -20,3 +20,6 @@ subjects:
   - apiGroup: policy.open-cluster-management.io
     kind: Policy
     name: virt-vxflexos-ready
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: virt-vxflexos-storage

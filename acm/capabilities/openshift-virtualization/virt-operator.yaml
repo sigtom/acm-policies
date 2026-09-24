@@ -35,7 +35,7 @@ spec:
           severity: medium
           upgradeApproval: None
           versions:
-            - kubevirt-hyperconverged-operator.v4.21.16
+            - kubevirt-hyperconverged-operator.v4.21.17
           operatorGroup:
             name: kubevirt-hyperconverged-group
             namespace: openshift-cnv
@@ -47,4 +47,4 @@ spec:
             namespace: openshift-cnv
             source: redhat-operators
             sourceNamespace: openshift-marketplace
-            startingCSV: kubevirt-hyperconverged-operator.v4.21.16
+            startingCSV: kubevirt-hyperconverged-operator.v4.21.17

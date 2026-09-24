@@ -1,0 +1,43 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: virt-vxflexos-storage
+  namespace: open-cluster-management-policies
+spec:
+  disabled: false
+  remediationAction: enforce
+  dependencies:
+    - apiVersion: policy.open-cluster-management.io/v1
+      kind: Policy
+      name: virt-vxflexos-ready
+      namespace: open-cluster-management-policies
+      compliance: Compliant
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: virt-vxflexos-storage
+        spec:
+          remediationAction: enforce
+          severity: high
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: cdi.kubevirt.io/v1beta1
+                kind: StorageProfile
+                metadata:
+                  name: vxflexos
+                spec:
+                  claimPropertySets:
+                    - accessModes:
+                        - ReadWriteMany
+                      volumeMode: Block
+                    - accessModes:
+                        - ReadWriteOnce
+                      volumeMode: Block
+                    - accessModes:
+                        - ReadWriteOnce
+                      volumeMode: Filesystem
+                  cloneStrategy: csi-clone
+                  snapshotClass: vxflexos-snapclass
