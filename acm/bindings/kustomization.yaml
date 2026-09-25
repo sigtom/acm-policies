@@ -6,3 +6,4 @@ resources:
   - node-health-check.yaml
   - node-maintenance.yaml
   - openshift-virtualization.yaml
+  - openshift-logging.yaml

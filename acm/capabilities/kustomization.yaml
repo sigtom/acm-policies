@@ -6,3 +6,4 @@ resources:
   - node-health-check/
   - node-maintenance/
   - openshift-virtualization/
+  - openshift-logging/

@@ -1,0 +1,19 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: openshift-logging
+  namespace: open-cluster-management-policies
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: openshift-logging
+subjects:
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: loki-operator
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: logging-operator
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: logging-rbac
