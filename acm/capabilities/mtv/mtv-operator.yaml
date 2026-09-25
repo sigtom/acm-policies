@@ -1,0 +1,54 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: mtv-operator
+  namespace: open-cluster-management-policies
+spec:
+  disabled: false
+  remediationAction: enforce
+  dependencies:
+    - apiVersion: policy.open-cluster-management.io/v1
+      kind: Policy
+      name: virt-hco
+      namespace: open-cluster-management-policies
+      compliance: Compliant
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: mtv-namespace
+        spec:
+          remediationAction: enforce
+          severity: medium
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: openshift-mtv
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1beta1
+        kind: OperatorPolicy
+        metadata:
+          name: mtv-operator
+        spec:
+          complianceType: musthave
+          remediationAction: enforce
+          severity: medium
+          upgradeApproval: None
+          versions:
+            - mtv-operator.v2.12.9
+          operatorGroup:
+            name: migration
+            namespace: openshift-mtv
+            targetNamespaces:
+              - openshift-mtv
+          subscription:
+            channel: release-v2.12
+            name: mtv-operator
+            namespace: openshift-mtv
+            source: redhat-operators
+            sourceNamespace: openshift-marketplace
+            startingCSV: mtv-operator.v2.12.9

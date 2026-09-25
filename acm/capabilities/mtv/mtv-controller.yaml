@@ -1,0 +1,33 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: mtv-controller
+  namespace: open-cluster-management-policies
+spec:
+  disabled: false
+  remediationAction: enforce
+  dependencies:
+    - apiVersion: policy.open-cluster-management.io/v1
+      kind: Policy
+      name: mtv-operator
+      namespace: open-cluster-management-policies
+      compliance: Compliant
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: mtv-controller
+        spec:
+          remediationAction: enforce
+          severity: high
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: forklift.konveyor.io/v1beta1
+                kind: ForkliftController
+                metadata:
+                  name: forklift-controller
+                  namespace: openshift-mtv
+                spec:
+                  olm_managed: true

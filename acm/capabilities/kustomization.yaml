@@ -7,3 +7,4 @@ resources:
   - node-maintenance/
   - openshift-virtualization/
   - openshift-logging/
+  - mtv/

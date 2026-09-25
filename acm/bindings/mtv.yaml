@@ -1,0 +1,16 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: mtv
+  namespace: open-cluster-management-policies
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: mtv
+subjects:
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: mtv-operator
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: mtv-controller

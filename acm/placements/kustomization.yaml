@@ -7,3 +7,4 @@ resources:
   - node-maintenance.yaml
   - openshift-virtualization.yaml
   - openshift-logging.yaml
+  - mtv.yaml
