@@ -8,3 +8,5 @@ resources:
   - openshift-virtualization.yaml
   - openshift-logging.yaml
   - mtv.yaml
+  - fence-agents-remediation.yaml
+  - oadp.yaml

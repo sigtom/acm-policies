@@ -1,0 +1,46 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: far-operator
+  namespace: open-cluster-management-policies
+spec:
+  disabled: false
+  remediationAction: enforce
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: far-workload-availability-namespace
+        spec:
+          remediationAction: enforce
+          severity: medium
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: openshift-workload-availability
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1beta1
+        kind: OperatorPolicy
+        metadata:
+          name: fence-agents-remediation
+        spec:
+          complianceType: musthave
+          remediationAction: enforce
+          severity: medium
+          upgradeApproval: None
+          versions:
+            - fence-agents-remediation.v0.7.0
+          operatorGroup:
+            name: workload-availability-operator-group
+            namespace: openshift-workload-availability
+          subscription:
+            channel: stable
+            name: fence-agents-remediation
+            namespace: openshift-workload-availability
+            source: redhat-operators
+            sourceNamespace: openshift-marketplace
+            startingCSV: fence-agents-remediation.v0.7.0

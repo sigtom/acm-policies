@@ -8,3 +8,5 @@ resources:
   - openshift-virtualization/
   - openshift-logging/
   - mtv/
+  - fence-agents-remediation/
+  - oadp/

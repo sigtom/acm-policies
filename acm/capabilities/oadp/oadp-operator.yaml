@@ -1,0 +1,48 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: oadp-operator
+  namespace: open-cluster-management-policies
+spec:
+  disabled: false
+  remediationAction: enforce
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: oadp-namespace
+        spec:
+          remediationAction: enforce
+          severity: medium
+          object-templates:
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: openshift-adp
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1beta1
+        kind: OperatorPolicy
+        metadata:
+          name: oadp-operator
+        spec:
+          complianceType: musthave
+          remediationAction: enforce
+          severity: medium
+          upgradeApproval: None
+          versions:
+            - oadp-operator.v1.5.8
+          operatorGroup:
+            name: redhat-oadp-operator
+            namespace: openshift-adp
+            targetNamespaces:
+              - openshift-adp
+          subscription:
+            channel: stable
+            name: redhat-oadp-operator
+            namespace: openshift-adp
+            source: redhat-operators
+            sourceNamespace: openshift-marketplace
+            startingCSV: oadp-operator.v1.5.8
