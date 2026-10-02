@@ -1,0 +1,4 @@
+# Copy the completed examples/settings.yaml to settings.yaml and list it here only after review.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []

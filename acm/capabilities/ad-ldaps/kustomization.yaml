@@ -1,0 +1,9 @@
+# Optional access policy in examples/ is deliberately excluded.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ad-ldaps-prereqs.yaml
+- ad-ldaps-trust.yaml
+- ad-ldaps-secrets.yaml
+- ad-ldaps-groups.yaml
+- ad-ldaps-oauth.yaml

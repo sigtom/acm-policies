@@ -1,0 +1,14 @@
+# Optional: add only after approving the settings.rbacBindings entries and testing group membership.
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: ad-ldaps-access
+  namespace: open-cluster-management-policies
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: ad-ldaps-login
+subjects:
+- apiGroup: policy.open-cluster-management.io
+  kind: Policy
+  name: ad-ldaps-access

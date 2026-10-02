@@ -1,0 +1,22 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: ad-ldaps
+  namespace: open-cluster-management-policies
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: ad-ldaps
+subjects:
+- apiGroup: policy.open-cluster-management.io
+  kind: Policy
+  name: ad-ldaps-prereqs
+- apiGroup: policy.open-cluster-management.io
+  kind: Policy
+  name: ad-ldaps-trust
+- apiGroup: policy.open-cluster-management.io
+  kind: Policy
+  name: ad-ldaps-secrets
+- apiGroup: policy.open-cluster-management.io
+  kind: Policy
+  name: ad-ldaps-groups

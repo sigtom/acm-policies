@@ -1,0 +1,28 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: ad-ldaps-prereqs
+  namespace: open-cluster-management-policies
+  annotations:
+    policy.open-cluster-management.io/description: Create only the namespace for the built-in oc LDAP group-sync
+      job.
+spec:
+  disabled: false
+  remediationAction: enforce
+  policy-templates:
+  - objectDefinition:
+      apiVersion: policy.open-cluster-management.io/v1
+      kind: ConfigurationPolicy
+      metadata:
+        name: ad-ldaps-prereqs-config
+      spec:
+        remediationAction: enforce
+        severity: high
+        pruneObjectBehavior: None
+        object-templates:
+        - complianceType: musthave
+          objectDefinition:
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: ad-ldap-sync

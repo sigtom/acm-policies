@@ -1,0 +1,249 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: ad-ldaps-groups
+  namespace: open-cluster-management-policies
+  annotations:
+    policy.open-cluster-management.io/description: Configure allowlisted LDAP group sync; suspended and dry-run
+      by default.
+spec:
+  disabled: false
+  remediationAction: enforce
+  dependencies:
+  - apiVersion: policy.open-cluster-management.io/v1
+    kind: Policy
+    name: ad-ldaps-trust
+    namespace: open-cluster-management-policies
+    compliance: Compliant
+  - apiVersion: policy.open-cluster-management.io/v1
+    kind: Policy
+    name: ad-ldaps-secrets
+    namespace: open-cluster-management-policies
+    compliance: Compliant
+  policy-templates:
+  - objectDefinition:
+      apiVersion: policy.open-cluster-management.io/v1
+      kind: ConfigurationPolicy
+      metadata:
+        name: ad-ldaps-groups-config
+      spec:
+        remediationAction: enforce
+        severity: high
+        pruneObjectBehavior: None
+        object-templates-raw: |
+          {{hub- $cluster := .ManagedClusterName hub}}
+          {{hub- $matches := list hub}}
+          {{hub- range $cm := (lookup "v1" "ConfigMap" "open-cluster-management-policies" "").items hub}}
+          {{hub- $labels := default (dict) $cm.metadata.labels hub}}
+          {{hub- if and (eq (get $labels "acm-config") "ad-ldaps") (eq (get $labels "managed-cluster") $cluster) hub}}
+          {{hub- $matches = append $matches $cm hub}}
+          {{hub- end hub}}
+          {{hub- end hub}}
+          {{hub- if ne (len $matches) 1 hub}}
+          {{hub- fail "Expected exactly one hub ConfigMap labeled acm-config=ad-ldaps and managed-cluster=<target ManagedCluster name>" hub}}
+          {{hub- end hub}}
+          {{hub- $cm := index $matches 0 hub}}
+          {{hub- $settingsText := index $cm.data "settings.yaml" hub}}
+          {{hub- if empty $settingsText hub}}{{hub- fail "settings.yaml is missing or empty" hub}}{{hub- end hub}}
+          {{hub- $s := $settingsText | fromYaml hub}}
+          {{hub- range $key := list "configurationApproved" "syncSuspend" "syncConfirm" "nestedGroups" hub}}
+          {{hub- if ne (printf "%T" (get $s $key)) "bool" hub}}{{hub- fail (printf "%s must be an explicit YAML boolean" $key) hub}}{{hub- end hub}}
+          {{hub- end hub}}
+          {{hub- if contains "{{" (toJson $s) hub}}{{hub- fail "Template delimiters are not allowed inside AD settings" hub}}{{hub- end hub}}
+          {{hub- if ne $s.configurationApproved true hub}}{{hub- fail "Set configurationApproved: true only after reviewing this target's AD settings" hub}}{{hub- end hub}}
+          {{hub- if contains "REPLACE_WITH_" (toJson $s) hub}}{{hub- fail "Replace all REPLACE_WITH_ values in the target AD settings before activation" hub}}{{hub- end hub}}
+          {{hub- if not (regexMatch "^ldaps://[A-Za-z0-9.-]+:[0-9]+$" $s.ldapURL) hub}}{{hub- fail "ldapURL must be ldaps://<certificate-matching DNS name>:<port>, with no credentials or path" hub}}{{hub- end hub}}
+          {{hub- range $key := list "bindDN" "usersBaseDN" "oauthUserFilter" "syncUserFilter" "userNameAttribute" "userIDAttribute" "displayNameAttribute" "emailAttribute" "caBundle" "syncImage" "syncSchedule" hub}}
+          {{hub- if empty (get $s $key) hub}}{{hub- fail (printf "Required non-secret setting is empty: %s" $key) hub}}{{hub- end hub}}
+          {{hub- end hub}}
+          {{hub- range $key := list "userNameAttribute" "userIDAttribute" "displayNameAttribute" "emailAttribute" hub}}
+          {{hub- if not (regexMatch "^[A-Za-z][A-Za-z0-9-]*$" (get $s $key)) hub}}{{hub- fail (printf "Invalid LDAP attribute name: %s" $key) hub}}{{hub- end hub}}
+          {{hub- end hub}}
+          {{hub- if has (lower $s.userNameAttribute) (list "objectguid" "objectsid") hub}}{{hub- fail "Group member usernames must use a non-binary attribute, such as sAMAccountName or userPrincipalName" hub}}{{hub- end hub}}
+          {{hub- if not (contains "-----BEGIN CERTIFICATE-----" $s.caBundle) hub}}{{hub- fail "caBundle must contain the PEM issuing/root CA chain, not a private key" hub}}{{hub- end hub}}
+          {{hub- if contains "PRIVATE KEY" $s.caBundle hub}}{{hub- fail "Private keys must never be placed in the AD settings ConfigMap" hub}}{{hub- end hub}}
+          {{hub- if not (regexMatch "^[a-z0-9][a-z0-9.-]*[a-z0-9]$" $s.idpName) hub}}{{hub- fail "idpName must be a unique lower-case name; use ad-ldaps for this rollout" hub}}{{hub- end hub}}
+          {{hub- if ne $s.mappingMethod "claim" hub}}{{hub- fail "This rollout uses mappingMethod=claim; review identity collisions instead of automatically linking identities" hub}}{{hub- end hub}}
+          {{hub- if not (regexMatch "^[-A-Za-z0-9._/:]+@sha256:[a-f0-9]{64}$" $s.syncImage) hub}}{{hub- fail "syncImage must be the approved OpenShift 4.21 CLI image pinned by sha256 digest" hub}}{{hub- end hub}}
+          {{hub- if eq (len $s.groups) 0 hub}}{{hub- fail "At least one explicitly approved LDAP group must be listed" hub}}{{hub- end hub}}
+          {{hub- $groupNames := list hub}}
+          {{hub- $groupDNs := list hub}}
+          {{hub- $mapping := dict hub}}
+          {{hub- range $g := $s.groups hub}}
+          {{hub- if or (empty $g.ldapDN) (contains "\n" $g.ldapDN) (contains "\r" $g.ldapDN) hub}}{{hub- fail "Each LDAP group DN must be nonempty and occupy one line" hub}}{{hub- end hub}}
+          {{hub- if not (regexMatch "^ad-[a-z0-9]([a-z0-9.-]*[a-z0-9])?$" $g.openshiftName) hub}}{{hub- fail "Use unique ad-* OpenShift group names, not system or existing privileged group names" hub}}{{hub- end hub}}
+          {{hub- if or (has $g.ldapDN $groupDNs) (has $g.openshiftName $groupNames) hub}}{{hub- fail "LDAP DNs and OpenShift group names must both be unique" hub}}{{hub- end hub}}
+          {{hub- $groupNames = append $groupNames $g.openshiftName hub}}
+          {{hub- $groupDNs = append $groupDNs $g.ldapDN hub}}
+          {{hub- $_ := set $mapping $g.ldapDN $g.openshiftName hub}}
+          {{hub- end hub}}
+
+          {{hub- $membershipAttribute := "memberOf" hub}}
+          {{hub- if $s.nestedGroups hub}}{{hub- $membershipAttribute = "memberOf:1.2.840.113556.1.4.1941:" hub}}{{hub- end hub}}
+          {{hub- $groupsQuery := dict "derefAliases" "never" "pageSize" 0 hub}}
+          {{hub- $usersQuery := dict "baseDN" $s.usersBaseDN "scope" "sub" "derefAliases" "never" "filter" $s.syncUserFilter "pageSize" 500 hub}}
+          {{hub- $schema := dict "groupsQuery" $groupsQuery "groupUIDAttribute" "dn" "groupNameAttributes" (list "cn") "usersQuery" $usersQuery "userNameAttributes" (list $s.userNameAttribute) "groupMembershipAttributes" (list $membershipAttribute) hub}}
+          {{hub- $sync := dict "apiVersion" "v1" "kind" "LDAPSyncConfig" "url" $s.ldapURL "bindDN" $s.bindDN "bindPassword" (dict "file" "/etc/ad-credentials/bindPassword") "insecure" false "ca" "/etc/ad-ca/ca.crt" "groupUIDNameMapping" $mapping "augmentedActiveDirectory" $schema hub}}
+          - complianceType: musthave
+            objectDefinition:
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: ad-ldap-group-sync
+                namespace: ad-ldap-sync
+              data:
+                sync.yaml: {{hub $sync | toYaml | toJson hub}}
+                groups.txt: {{hub printf "%s\n" (join "\n" $groupDNs) | toJson hub}}
+          - complianceType: musthave
+            objectDefinition:
+              apiVersion: v1
+              kind: ServiceAccount
+              metadata:
+                name: ad-ldap-group-sync
+                namespace: ad-ldap-sync
+              automountServiceAccountToken: true
+          - complianceType: mustonlyhave
+            metadataComplianceType: musthave
+            objectDefinition:
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                name: ad-ldap-group-sync
+              rules:
+                - apiGroups: [user.openshift.io]
+                  resources: [groups]
+                  verbs: [get, list, create]
+                - apiGroups: [user.openshift.io]
+                  resources: [groups]
+                  resourceNames: {{hub $groupNames | toJson hub}}
+                  verbs: [update]
+          - complianceType: mustonlyhave
+            metadataComplianceType: musthave
+            objectDefinition:
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRoleBinding
+              metadata:
+                name: ad-ldap-group-sync
+              roleRef:
+                apiGroup: rbac.authorization.k8s.io
+                kind: ClusterRole
+                name: ad-ldap-group-sync
+              subjects:
+                - kind: ServiceAccount
+                  name: ad-ldap-group-sync
+                  namespace: ad-ldap-sync
+          - complianceType: musthave
+            objectDefinition:
+              apiVersion: batch/v1
+              kind: CronJob
+              metadata:
+                name: ad-ldap-group-sync
+                namespace: ad-ldap-sync
+                labels:
+                  app.kubernetes.io/name: ad-ldap-group-sync
+              spec:
+                schedule: {{hub $s.syncSchedule | toJson hub}}
+                timeZone: Etc/UTC
+                suspend: {{hub $s.syncSuspend | toJson hub}}
+                concurrencyPolicy: Forbid
+                startingDeadlineSeconds: 300
+                successfulJobsHistoryLimit: 3
+                failedJobsHistoryLimit: 3
+                jobTemplate:
+                  metadata:
+                    labels:
+                      app.kubernetes.io/name: ad-ldap-group-sync
+                  spec:
+                    backoffLimit: 0
+                    activeDeadlineSeconds: 600
+                    ttlSecondsAfterFinished: 86400
+                    template:
+                      metadata:
+                        labels:
+                          app.kubernetes.io/name: ad-ldap-group-sync
+                      spec:
+                        serviceAccountName: ad-ldap-group-sync
+                        automountServiceAccountToken: true
+                        restartPolicy: Never
+                        terminationGracePeriodSeconds: 30
+                        securityContext:
+                          runAsNonRoot: true
+                          seccompProfile:
+                            type: RuntimeDefault
+                        containers:
+                          - name: group-sync
+                            image: {{hub $s.syncImage | toJson hub}}
+                            imagePullPolicy: IfNotPresent
+                            command: [/bin/bash, -c]
+                            args:
+                              - |
+                                set -euo pipefail
+                                # This pod authenticates to its own cluster with its projected SA token.
+                                # Never print the bind password or enable shell tracing.
+                                test -s /etc/ad-sync/sync.yaml
+                                test -s /etc/ad-sync/groups.txt
+                                test -s /etc/ad-ca/ca.crt
+                                test -s /etc/ad-credentials/bindPassword
+                                args=(adm groups sync --type=ldap
+                                  --sync-config=/etc/ad-sync/sync.yaml
+                                  --whitelist=/etc/ad-sync/groups.txt)
+                                case "${SYNC_CONFIRM}" in
+                                  true)
+                                    echo "Applying membership sync for explicitly allowlisted groups."
+                                    args+=(--confirm)
+                                    ;;
+                                  false)
+                                    echo "DRY RUN ONLY: no group changes will be saved."
+                                    args+=(-o yaml)
+                                    ;;
+                                  *) echo "Invalid SYNC_CONFIRM; refusing to run." >&2; exit 2 ;;
+                                esac
+                                exec oc "${args[@]}"
+                            env:
+                              - name: SYNC_CONFIRM
+                                value: {{hub printf "%t" $s.syncConfirm | toJson hub}}
+                              - name: HOME
+                                value: /tmp
+                            securityContext:
+                              allowPrivilegeEscalation: false
+                              readOnlyRootFilesystem: true
+                              capabilities:
+                                drop: [ALL]
+                            resources:
+                              requests:
+                                cpu: 50m
+                                memory: 128Mi
+                              limits:
+                                cpu: 500m
+                                memory: 512Mi
+                            volumeMounts:
+                              - name: settings
+                                mountPath: /etc/ad-sync
+                                readOnly: true
+                              - name: credentials
+                                mountPath: /etc/ad-credentials
+                                readOnly: true
+                              - name: ca
+                                mountPath: /etc/ad-ca
+                                readOnly: true
+                              - name: tmp
+                                mountPath: /tmp
+                        volumes:
+                          - name: settings
+                            configMap:
+                              name: ad-ldap-group-sync
+                              defaultMode: 0444
+                          - name: credentials
+                            secret:
+                              secretName: ad-ldap-bind
+                              defaultMode: 0444
+                              items:
+                                - key: bindPassword
+                                  path: bindPassword
+                          - name: ca
+                            configMap:
+                              name: ad-ldaps-ca
+                              defaultMode: 0444
+                          - name: tmp
+                            emptyDir:
+                              sizeLimit: 128Mi

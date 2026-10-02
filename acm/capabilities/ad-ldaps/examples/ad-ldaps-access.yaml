@@ -1,0 +1,106 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: ad-ldaps-access
+  namespace: open-cluster-management-policies
+  annotations:
+    policy.open-cluster-management.io/description: Optional explicit group-to-role bindings. No permissions are
+      granted by default.
+spec:
+  disabled: false
+  remediationAction: enforce
+  dependencies:
+  - apiVersion: policy.open-cluster-management.io/v1
+    kind: Policy
+    name: ad-ldaps-oauth
+    namespace: open-cluster-management-policies
+    compliance: Compliant
+  - apiVersion: policy.open-cluster-management.io/v1
+    kind: Policy
+    name: ad-ldaps-groups
+    namespace: open-cluster-management-policies
+    compliance: Compliant
+  policy-templates:
+  - objectDefinition:
+      apiVersion: policy.open-cluster-management.io/v1
+      kind: ConfigurationPolicy
+      metadata:
+        name: ad-ldaps-access-config
+      spec:
+        remediationAction: enforce
+        severity: high
+        pruneObjectBehavior: None
+        object-templates-raw: |
+          {{hub- $cluster := .ManagedClusterName hub}}
+          {{hub- $matches := list hub}}
+          {{hub- range $cm := (lookup "v1" "ConfigMap" "open-cluster-management-policies" "").items hub}}
+          {{hub- $labels := default (dict) $cm.metadata.labels hub}}
+          {{hub- if and (eq (get $labels "acm-config") "ad-ldaps") (eq (get $labels "managed-cluster") $cluster) hub}}
+          {{hub- $matches = append $matches $cm hub}}
+          {{hub- end hub}}
+          {{hub- end hub}}
+          {{hub- if ne (len $matches) 1 hub}}
+          {{hub- fail "Expected exactly one hub ConfigMap labeled acm-config=ad-ldaps and managed-cluster=<target ManagedCluster name>" hub}}
+          {{hub- end hub}}
+          {{hub- $cm := index $matches 0 hub}}
+          {{hub- $settingsText := index $cm.data "settings.yaml" hub}}
+          {{hub- if empty $settingsText hub}}{{hub- fail "settings.yaml is missing or empty" hub}}{{hub- end hub}}
+          {{hub- $s := $settingsText | fromYaml hub}}
+          {{hub- range $key := list "configurationApproved" "syncSuspend" "syncConfirm" "nestedGroups" hub}}
+          {{hub- if ne (printf "%T" (get $s $key)) "bool" hub}}{{hub- fail (printf "%s must be an explicit YAML boolean" $key) hub}}{{hub- end hub}}
+          {{hub- end hub}}
+          {{hub- if contains "{{" (toJson $s) hub}}{{hub- fail "Template delimiters are not allowed inside AD settings" hub}}{{hub- end hub}}
+          {{hub- if ne $s.configurationApproved true hub}}{{hub- fail "Set configurationApproved: true only after reviewing this target's AD settings" hub}}{{hub- end hub}}
+          {{hub- if contains "REPLACE_WITH_" (toJson $s) hub}}{{hub- fail "Replace all REPLACE_WITH_ values in the target AD settings before activation" hub}}{{hub- end hub}}
+          {{hub- if not (regexMatch "^ldaps://[A-Za-z0-9.-]+:[0-9]+$" $s.ldapURL) hub}}{{hub- fail "ldapURL must be ldaps://<certificate-matching DNS name>:<port>, with no credentials or path" hub}}{{hub- end hub}}
+          {{hub- range $key := list "bindDN" "usersBaseDN" "oauthUserFilter" "syncUserFilter" "userNameAttribute" "userIDAttribute" "displayNameAttribute" "emailAttribute" "caBundle" "syncImage" "syncSchedule" hub}}
+          {{hub- if empty (get $s $key) hub}}{{hub- fail (printf "Required non-secret setting is empty: %s" $key) hub}}{{hub- end hub}}
+          {{hub- end hub}}
+          {{hub- range $key := list "userNameAttribute" "userIDAttribute" "displayNameAttribute" "emailAttribute" hub}}
+          {{hub- if not (regexMatch "^[A-Za-z][A-Za-z0-9-]*$" (get $s $key)) hub}}{{hub- fail (printf "Invalid LDAP attribute name: %s" $key) hub}}{{hub- end hub}}
+          {{hub- end hub}}
+          {{hub- if has (lower $s.userNameAttribute) (list "objectguid" "objectsid") hub}}{{hub- fail "Group member usernames must use a non-binary attribute, such as sAMAccountName or userPrincipalName" hub}}{{hub- end hub}}
+          {{hub- if not (contains "-----BEGIN CERTIFICATE-----" $s.caBundle) hub}}{{hub- fail "caBundle must contain the PEM issuing/root CA chain, not a private key" hub}}{{hub- end hub}}
+          {{hub- if contains "PRIVATE KEY" $s.caBundle hub}}{{hub- fail "Private keys must never be placed in the AD settings ConfigMap" hub}}{{hub- end hub}}
+          {{hub- if not (regexMatch "^[a-z0-9][a-z0-9.-]*[a-z0-9]$" $s.idpName) hub}}{{hub- fail "idpName must be a unique lower-case name; use ad-ldaps for this rollout" hub}}{{hub- end hub}}
+          {{hub- if ne $s.mappingMethod "claim" hub}}{{hub- fail "This rollout uses mappingMethod=claim; review identity collisions instead of automatically linking identities" hub}}{{hub- end hub}}
+          {{hub- if not (regexMatch "^[-A-Za-z0-9._/:]+@sha256:[a-f0-9]{64}$" $s.syncImage) hub}}{{hub- fail "syncImage must be the approved OpenShift 4.21 CLI image pinned by sha256 digest" hub}}{{hub- end hub}}
+          {{hub- if eq (len $s.groups) 0 hub}}{{hub- fail "At least one explicitly approved LDAP group must be listed" hub}}{{hub- end hub}}
+          {{hub- $groupNames := list hub}}
+          {{hub- $groupDNs := list hub}}
+          {{hub- $mapping := dict hub}}
+          {{hub- range $g := $s.groups hub}}
+          {{hub- if or (empty $g.ldapDN) (contains "\n" $g.ldapDN) (contains "\r" $g.ldapDN) hub}}{{hub- fail "Each LDAP group DN must be nonempty and occupy one line" hub}}{{hub- end hub}}
+          {{hub- if not (regexMatch "^ad-[a-z0-9]([a-z0-9.-]*[a-z0-9])?$" $g.openshiftName) hub}}{{hub- fail "Use unique ad-* OpenShift group names, not system or existing privileged group names" hub}}{{hub- end hub}}
+          {{hub- if or (has $g.ldapDN $groupDNs) (has $g.openshiftName $groupNames) hub}}{{hub- fail "LDAP DNs and OpenShift group names must both be unique" hub}}{{hub- end hub}}
+          {{hub- $groupNames = append $groupNames $g.openshiftName hub}}
+          {{hub- $groupDNs = append $groupDNs $g.ldapDN hub}}
+          {{hub- $_ := set $mapping $g.ldapDN $g.openshiftName hub}}
+          {{hub- end hub}}
+
+          {{hub- if eq (len $s.rbacBindings) 0 hub}}{{hub- fail "No group RBAC bindings approved; leave this optional policy excluded" hub}}{{hub- end hub}}
+          {{hub- range $b := $s.rbacBindings hub}}
+          {{hub- if not (has $b.group $groupNames) hub}}{{hub- fail "Every RBAC group must appear in the approved LDAP group mapping" hub}}{{hub- end hub}}
+          {{hub- if not (has $b.kind (list "RoleBinding" "ClusterRoleBinding")) hub}}{{hub- fail "RBAC kind must be RoleBinding or ClusterRoleBinding" hub}}{{hub- end hub}}
+          {{hub- if or (empty $b.name) (empty $b.clusterRole) hub}}{{hub- fail "RBAC name and clusterRole are required" hub}}{{hub- end hub}}
+          {{hub- if not (hasPrefix "ad-ldaps-" $b.name) hub}}{{hub- fail "Use a unique ad-ldaps-* binding name; do not take over existing bindings" hub}}{{hub- end hub}}
+          {{hub- if and (eq $b.kind "RoleBinding") (empty $b.namespace) hub}}{{hub- fail "RoleBinding requires an existing approved project namespace" hub}}{{hub- end hub}}
+          - complianceType: mustonlyhave
+            metadataComplianceType: musthave
+            objectDefinition:
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: {{hub $b.kind | toJson hub}}
+              metadata:
+                name: {{hub $b.name | toJson hub}}
+          {{hub if eq $b.kind "RoleBinding" hub}}
+                namespace: {{hub $b.namespace | toJson hub}}
+          {{hub end hub}}
+              roleRef:
+                apiGroup: rbac.authorization.k8s.io
+                kind: ClusterRole
+                name: {{hub $b.clusterRole | toJson hub}}
+              subjects:
+                - kind: Group
+                  apiGroup: rbac.authorization.k8s.io
+                  name: {{hub $b.group | toJson hub}}
+          {{hub end hub}}

@@ -10,3 +10,4 @@ resources:
   - mtv/
   - fence-agents-remediation/
   - oadp/
+  - ad-ldaps/

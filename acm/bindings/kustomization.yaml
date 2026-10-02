@@ -10,3 +10,5 @@ resources:
   - mtv.yaml
   - fence-agents-remediation.yaml
   - oadp.yaml
+  - ad-ldaps.yaml
+  - ad-ldaps-login.yaml
